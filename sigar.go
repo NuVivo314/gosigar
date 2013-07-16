@@ -16,6 +16,10 @@ type Mem struct {
 	Free       uint64
 	ActualFree uint64
 	ActualUsed uint64
+	Active     uint64
+	Inactive   uint64
+	Buffers    uint64
+	Cached     uint64
 }
 
 type Swap struct {
@@ -51,6 +55,27 @@ type FileSystem struct {
 	SysTypeName string
 	Options     string
 	Flags       uint32
+}
+
+type DiskIO struct {
+  Name string
+  ReadIssued uint64
+  ReadMerged uint64
+  ReadSectors uint64
+  ReadSpentMs uint64
+
+  WriteComplet uint64
+  WriteMerged uint64
+  WriteSectors uint64
+  WriteSpentMs uint64
+
+  WaitIo uint64
+  WaitIoSpentMs uint64
+  WaitIoSpentMsWeighted uint64
+}
+
+type DiskIOList struct {
+  List []DiskIO
 }
 
 type FileSystemList struct {
@@ -116,3 +141,45 @@ type ProcExe struct {
 	Cwd  string
 	Root string
 }
+
+// From: https://code.google.com/p/psutil/source/browse/psutil/_pslinux.py#535
+type ProcIO struct {
+  ReadCount uint64
+  WriteCount uint64
+  ReadBytes uint64
+  WriteBytes uint64
+}
+
+type ProcUser struct {
+  UidReal string
+  UidEffective string
+  UidSaveSet string
+  UidFs string
+  GidReal string
+  GidEffective string
+  GidSaveSet string
+  GidFs string
+  OtherGroups []string
+}
+
+type networkData struct {
+  Bytes uint64
+  Packets uint64
+  Errs uint64
+  Drop uint64
+  Fifo uint64
+  Frame uint64
+  Compressed uint64
+  Multicast uint64
+}
+
+type Network struct {
+  Name string
+  Tx networkData
+  Rx networkData
+}
+
+type NetworkList struct {
+  List []Network
+}
+

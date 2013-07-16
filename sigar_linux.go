@@ -39,7 +39,7 @@ func (self *LoadAverage) Get() error {
 		return nil
 	}
 
-	fields := strings.Fields(string(line))
+	fields := strings.FieldsFunc(string(line), IsSpace)
 
 	self.One, _ = strconv.ParseFloat(fields[0], 64)
 	self.Five, _ = strconv.ParseFloat(fields[1], 64)
@@ -61,12 +61,13 @@ func (self *Uptime) Get() error {
 }
 
 func (self *Mem) Get() error {
-	var buffers, cached uint64
 	table := map[string]*uint64{
 		"MemTotal": &self.Total,
 		"MemFree":  &self.Free,
-		"Buffers":  &buffers,
-		"Cached":   &cached,
+		"Buffers":  &self.Buffers,
+		"Cached":   &self.Cached,
+		"Active":   &self.Active,
+		"Inactive": &self.Inactive,
 	}
 
 	if err := parseMeminfo(table); err != nil {
@@ -74,7 +75,7 @@ func (self *Mem) Get() error {
 	}
 
 	self.Used = self.Total - self.Free
-	kern := buffers + cached
+	kern := self.Buffers + self.Cached
 	self.ActualFree = self.Free + kern
 	self.ActualUsed = self.Used - kern
 
@@ -103,6 +104,33 @@ func (self *Cpu) Get() error {
 		}
 		return true
 	})
+}
+
+func (self *DiskIO) Get(diskId string) error {
+  return readFile(procd + "diskstats", func(line string) bool {
+    line = line[13:]
+    if line[:len(diskId)] == diskId {
+      parseDiskStat(self, line)
+      return false
+    }
+    return true
+  })
+}
+
+func (self *DiskIOList) Get() error {
+  disks := []DiskIO{}
+
+  err := readFile(procd+"diskstats", func(line string) bool {
+    line = line[13:]
+    disk := DiskIO{}
+    parseDiskStat(&disk, line)
+    disks = append(disks, disk)
+    return true
+  })
+
+  self.List = disks
+
+  return err
 }
 
 func (self *CpuList) Get() error {
@@ -134,7 +162,7 @@ func (self *FileSystemList) Get() error {
 	fslist := make([]FileSystem, 0, capacity)
 
 	err := readFile("/etc/mtab", func(line string) bool {
-		fields := strings.Fields(line)
+		fields := strings.FieldsFunc(line, IsSpace)
 
 		fs := FileSystem{}
 		fs.DevName = fields[0]
@@ -190,7 +218,7 @@ func (self *ProcState) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.Fields(string(contents))
+	fields := strings.FieldsFunc(string(contents), IsSpace)
 
 	self.Name = fields[1][1 : len(fields[1])-1] // strip ()'s
 
@@ -215,7 +243,7 @@ func (self *ProcMem) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.Fields(string(contents))
+	fields := strings.FieldsFunc(string(contents), IsSpace)
 
 	size, _ := strtoull(fields[0])
 	self.Size = size << 12
@@ -231,7 +259,7 @@ func (self *ProcMem) Get(pid int) error {
 		return err
 	}
 
-	fields = strings.Fields(string(contents))
+	fields = strings.FieldsFunc(string(contents), IsSpace)
 
 	self.MinorFaults, _ = strtoull(fields[10])
 	self.MajorFaults, _ = strtoull(fields[12])
@@ -246,7 +274,7 @@ func (self *ProcTime) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.Fields(string(contents))
+	fields := strings.FieldsFunc(string(contents), IsSpace)
 
 	user, _ := strtoull(fields[13])
 	sys, _ := strtoull(fields[14])
@@ -307,13 +335,69 @@ func (self *ProcExe) Get(pid int) error {
 	return nil
 }
 
+func (self *ProcIO) Get(pid int) error {
+  return readFile(procFileName(pid, "io"), func(line string) bool {
+    if strings.Contains(line, "rc") {
+      i := strings.IndexRune(line, ' ') + 1
+      if i != 0 { self.ReadCount, _ = strtoull(line[i:]) }
+    } else if strings.Contains(line, "wc") {
+      i := strings.IndexRune(line, ' ') + 1
+      if i != 0 { self.WriteCount, _ = strtoull(line[i:]) }
+    } else if strings.HasPrefix(line, "rea") {
+      i := strings.IndexRune(line, ' ') + 1
+      if i != 0 { self.ReadBytes, _ = strtoull(line[i:]) }
+    } else if strings.HasPrefix(line, "wri") {
+      i := strings.IndexRune(line, ' ') + 1
+      if i != 0 { self.WriteBytes, _ = strtoull(line[i:]) }
+    }
+    return true
+  })
+}
+
+func (self *ProcUser) Get(pid int) error {
+  return readFile(procFileName(pid, "status"), func(line string) bool {
+    if strings.Contains(line, "Uid") {
+      strS := strings.FieldsFunc(line, IsSpace)
+      self.UidReal = strS[1]
+      self.UidEffective = strS[2]
+      self.UidSaveSet = strS[3]
+      self.UidFs = strS[4]
+    } else if strings.Contains(line, "Gid") {
+      strS := strings.FieldsFunc(line, IsSpace)
+      self.GidReal = strS[1]
+      self.GidEffective = strS[2]
+      self.GidSaveSet = strS[3]
+      self.GidFs = strS[4]
+    } else if strings.Contains(line, "Groups") {
+      strS := strings.FieldsFunc(line, IsSpace)
+      self.OtherGroups = make([]string, len(strS), len(strS))
+      for k := range strS {
+	self.OtherGroups[k] = strS[k]
+      }
+    }
+    return true
+  })
+}
+
+func (self *NetworkList) Get() error {
+  return readFile(procd+"/net/dev", func(line string) bool {
+    if strings.Contains(line[:10], "Inte") || strings.Contains(line[:10], "face") {
+      return true
+    }
+    n := Network{}
+    parseNetwork(&n, line)
+    self.List = append(self.List, n)
+    return true
+  })
+}
+
 func parseMeminfo(table map[string]*uint64) error {
 	return readFile(procd+"meminfo", func(line string) bool {
 		fields := strings.Split(line, ":")
 
 		if ptr := table[fields[0]]; ptr != nil {
 			num := strings.TrimLeft(fields[1], " ")
-			val, err := strtoull(strings.Fields(num)[0])
+			val, err := strtoull(strings.FieldsFunc(num, IsSpace)[0])
 			if err == nil {
 				*ptr = val * 1024
 			}
@@ -324,7 +408,7 @@ func parseMeminfo(table map[string]*uint64) error {
 }
 
 func parseCpuStat(self *Cpu, line string) error {
-	fields := strings.Fields(line)
+	fields := strings.FieldsFunc(line, IsSpace)
 
 	self.User, _ = strtoull(fields[1])
 	self.Nice, _ = strtoull(fields[2])
@@ -336,6 +420,54 @@ func parseCpuStat(self *Cpu, line string) error {
 	self.Stolen, _ = strtoull(fields[8])
 
 	return nil
+}
+
+func parseDiskStat(self *DiskIO, line string) error {
+  fields := strings.FieldsFunc(line, IsSpace)
+
+  self.Name = fields[0]
+  self.ReadIssued, _ = strtoull(fields[1])
+  self.ReadMerged, _ = strtoull(fields[2])
+  self.ReadSectors, _ = strtoull(fields[3])
+  self.ReadSpentMs, _ = strtoull(fields[4])
+
+  self.WriteComplet, _ = strtoull(fields[5])
+  self.WriteMerged, _ = strtoull(fields[6])
+  self.WriteSectors, _ = strtoull(fields[7])
+  self.WriteSpentMs, _ = strtoull(fields[8])
+
+  self.WaitIo, _ = strtoull(fields[9])
+  self.WaitIoSpentMs, _ = strtoull(fields[10])
+  self.WaitIoSpentMsWeighted, _ = strtoull(fields[11])
+  return nil
+}
+
+func parseNetwork(self *Network, line string) error {
+  fields := strings.FieldsFunc(line, func(r rune) bool {
+    if IsSpace(r) || r == '|' {
+      return true
+    }
+    return false
+  })
+
+  self.Name = fields[0][:len(fields[0])-1]
+  self.Rx.Bytes, _ = strtoull(fields[1])
+  self.Rx.Packets, _ = strtoull(fields[2])
+  self.Rx.Errs, _ = strtoull(fields[3])
+  self.Rx.Drop, _ = strtoull(fields[4])
+  self.Rx.Fifo, _ = strtoull(fields[5])
+  self.Rx.Frame, _ = strtoull(fields[6])
+  self.Rx.Compressed, _ = strtoull(fields[7])
+  self.Rx.Multicast, _ = strtoull(fields[8])
+
+  self.Tx.Bytes, _ = strtoull(fields[9])
+  self.Tx.Packets, _ = strtoull(fields[10])
+  self.Tx.Errs, _ = strtoull(fields[11])
+  self.Tx.Drop, _ = strtoull(fields[12])
+  self.Tx.Fifo, _ = strtoull(fields[13])
+  self.Tx.Frame, _ = strtoull(fields[14])
+  self.Tx.Compressed, _ = strtoull(fields[15])
+  return nil
 }
 
 func readFile(file string, handler func(string) bool) error {
@@ -380,4 +512,11 @@ func readProcFile(pid int, name string) ([]byte, error) {
 	}
 
 	return contents, err
+}
+
+func IsSpace(r rune) bool {
+  if r == ' ' || r == '\t' || r == '\n'{
+    return true
+  }
+  return false
 }
