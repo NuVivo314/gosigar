@@ -5,10 +5,8 @@ package sigar
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -220,7 +218,7 @@ func (self *ProcState) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.FieldsFunc(string(contents), IsSpace)
+	fields := strings.Split(string(contents), " ")
 
 	self.Name = fields[1][1 : len(fields[1])-1] // strip ()'s
 
@@ -235,7 +233,6 @@ func (self *ProcState) Get(pid int) error {
 	self.Nice, _ = strconv.Atoi(fields[18])
 
 	self.Processor, _ = strconv.Atoi(fields[38])
-	log.Println(self)
 
 	return nil
 }
@@ -246,7 +243,8 @@ func (self *ProcMem) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.FieldsFunc(string(contents), IsSpace)
+//	fields := strings.FieldsFunc(string(contents), IsSpace)
+	fields := strings.Split(string(contents), " ")
 
 	size, _ := strtoull(fields[0])
 	self.Size = size << 12
@@ -262,7 +260,8 @@ func (self *ProcMem) Get(pid int) error {
 		return err
 	}
 
-	fields = strings.FieldsFunc(string(contents), IsSpace)
+	//fields = strings.FieldsFunc(string(contents), IsSpace)
+	fields = strings.Split(string(contents), " ")
 
 	self.MinorFaults, _ = strtoull(fields[10])
 	self.MajorFaults, _ = strtoull(fields[12])
