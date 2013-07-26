@@ -61,12 +61,13 @@ func (self *Uptime) Get() error {
 }
 
 func (self *Mem) Get() error {
-	var buffers, cached uint64
 	table := map[string]*uint64{
 		"MemTotal": &self.Total,
 		"MemFree":  &self.Free,
-		"Buffers":  &buffers,
-		"Cached":   &cached,
+		"Buffers":  &self.Buffers,
+		"Cached":   &self.Cached,
+		"Active":   &self.Active,
+		"Inactive": &self.Inactive,
 	}
 
 	if err := parseMeminfo(table); err != nil {
@@ -74,7 +75,7 @@ func (self *Mem) Get() error {
 	}
 
 	self.Used = self.Total - self.Free
-	kern := buffers + cached
+	kern := self.Buffers + self.Cached
 	self.ActualFree = self.Free + kern
 	self.ActualUsed = self.Used - kern
 
