@@ -313,7 +313,7 @@ func parseMeminfo(table map[string]*uint64) error {
 
 		if ptr := table[fields[0]]; ptr != nil {
 			num := strings.TrimLeft(fields[1], " ")
-			val, err := strtoull(strings.Fields(num)[0])
+			val, err := strtoull(strings.FieldsFunc(num, IsSpace)[0])
 			if err == nil {
 				*ptr = val * 1024
 			}
