@@ -105,6 +105,33 @@ func (self *Cpu) Get() error {
 	})
 }
 
+func (self *DiskIO) Get(diskId string) error {
+	return readFile(procd+"diskstats", func(line string) bool {
+		line = line[13:]
+		if line[:len(diskId)] == diskId {
+			parseDiskStat(self, line)
+			return false
+		}
+		return true
+	})
+}
+
+func (self *DiskIOList) Get() error {
+	disks := []DiskIO{}
+
+	err := readFile(procd+"diskstats", func(line string) bool {
+		line = line[13:]
+		disk := DiskIO{}
+		parseDiskStat(&disk, line)
+		disks = append(disks, disk)
+		return true
+	})
+
+	self.List = disks
+
+	return err
+}
+
 func (self *CpuList) Get() error {
 	capacity := len(self.List)
 	if capacity == 0 {
@@ -307,6 +334,34 @@ func (self *ProcExe) Get(pid int) error {
 	return nil
 }
 
+func (self *ProcIO) Get(pid int) error {
+	return readFile(procFileName(pid, "io"), func(line string) bool {
+		if strings.Contains(line, "rc") {
+			i := strings.IndexRune(line, ' ') + 1
+			if i != 0 {
+				self.ReadCount, _ = strtoull(line[i:])
+			}
+		} else if strings.Contains(line, "wc") {
+			i := strings.IndexRune(line, ' ') + 1
+			if i != 0 {
+				self.WriteCount, _ = strtoull(line[i:])
+			}
+		} else if strings.HasPrefix(line, "rea") {
+			i := strings.IndexRune(line, ' ') + 1
+			if i != 0 {
+				self.ReadBytes, _ = strtoull(line[i:])
+			}
+		} else if strings.HasPrefix(line, "wri") {
+			i := strings.IndexRune(line, ' ') + 1
+			if i != 0 {
+				self.WriteBytes, _ = strtoull(line[i:])
+			}
+		}
+		return true
+	})
+}
+
+
 func parseMeminfo(table map[string]*uint64) error {
 	return readFile(procd+"meminfo", func(line string) bool {
 		fields := strings.Split(line, ":")
@@ -335,6 +390,26 @@ func parseCpuStat(self *Cpu, line string) error {
 	self.SoftIrq, _ = strtoull(fields[7])
 	self.Stolen, _ = strtoull(fields[8])
 
+	return nil
+}
+
+func parseDiskStat(self *DiskIO, line string) error {
+	fields := strings.FieldsFunc(line, IsSpace)
+
+	self.Name = fields[0]
+	self.ReadIssued, _ = strtoull(fields[1])
+	self.ReadMerged, _ = strtoull(fields[2])
+	self.ReadSectors, _ = strtoull(fields[3])
+	self.ReadSpentMs, _ = strtoull(fields[4])
+
+	self.WriteComplet, _ = strtoull(fields[5])
+	self.WriteMerged, _ = strtoull(fields[6])
+	self.WriteSectors, _ = strtoull(fields[7])
+	self.WriteSpentMs, _ = strtoull(fields[8])
+
+	self.WaitIo, _ = strtoull(fields[9])
+	self.WaitIoSpentMs, _ = strtoull(fields[10])
+	self.WaitIoSpentMsWeighted, _ = strtoull(fields[11])
 	return nil
 }
 
