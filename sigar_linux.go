@@ -307,6 +307,19 @@ func (self *ProcExe) Get(pid int) error {
 	return nil
 }
 
+
+func (self *NetworkList) Get() error {
+	return readFile(procd+"/net/dev", func(line string) bool {
+		if strings.Contains(line[:10], "Inte") || strings.Contains(line[:10], "face") {
+			return true
+		}
+		n := Network{}
+		parseNetwork(&n, line)
+		self.List = append(self.List, n)
+		return true
+	})
+}
+
 func parseMeminfo(table map[string]*uint64) error {
 	return readFile(procd+"meminfo", func(line string) bool {
 		fields := strings.Split(line, ":")
@@ -335,6 +348,34 @@ func parseCpuStat(self *Cpu, line string) error {
 	self.SoftIrq, _ = strtoull(fields[7])
 	self.Stolen, _ = strtoull(fields[8])
 
+	return nil
+}
+
+func parseNetwork(self *Network, line string) error {
+	fields := strings.FieldsFunc(line, func(r rune) bool {
+		if IsSpace(r) || r == '|' {
+			return true
+		}
+		return false
+	})
+
+	self.Name = fields[0][:len(fields[0])-1]
+	self.Rx.Bytes, _ = strtoull(fields[1])
+	self.Rx.Packets, _ = strtoull(fields[2])
+	self.Rx.Errs, _ = strtoull(fields[3])
+	self.Rx.Drop, _ = strtoull(fields[4])
+	self.Rx.Fifo, _ = strtoull(fields[5])
+	self.Rx.Frame, _ = strtoull(fields[6])
+	self.Rx.Compressed, _ = strtoull(fields[7])
+	self.Rx.Multicast, _ = strtoull(fields[8])
+
+	self.Tx.Bytes, _ = strtoull(fields[9])
+	self.Tx.Packets, _ = strtoull(fields[10])
+	self.Tx.Errs, _ = strtoull(fields[11])
+	self.Tx.Drop, _ = strtoull(fields[12])
+	self.Tx.Fifo, _ = strtoull(fields[13])
+	self.Tx.Frame, _ = strtoull(fields[14])
+	self.Tx.Compressed, _ = strtoull(fields[15])
 	return nil
 }
 
