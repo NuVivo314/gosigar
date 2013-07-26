@@ -39,7 +39,7 @@ func (self *LoadAverage) Get() error {
 		return nil
 	}
 
-	fields := strings.Fields(string(line))
+	fields := strings.FieldsFunc(string(line), IsSpace)
 
 	self.One, _ = strconv.ParseFloat(fields[0], 64)
 	self.Five, _ = strconv.ParseFloat(fields[1], 64)
@@ -134,7 +134,7 @@ func (self *FileSystemList) Get() error {
 	fslist := make([]FileSystem, 0, capacity)
 
 	err := readFile("/etc/mtab", func(line string) bool {
-		fields := strings.Fields(line)
+		fields := strings.FieldsFunc(line, IsSpace)
 
 		fs := FileSystem{}
 		fs.DevName = fields[0]
@@ -190,7 +190,7 @@ func (self *ProcState) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.Fields(string(contents))
+	fields := strings.Split(string(contents), " ")
 
 	self.Name = fields[1][1 : len(fields[1])-1] // strip ()'s
 
@@ -215,7 +215,7 @@ func (self *ProcMem) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.Fields(string(contents))
+	fields := strings.Split(string(contents), " ")
 
 	size, _ := strtoull(fields[0])
 	self.Size = size << 12
@@ -231,7 +231,7 @@ func (self *ProcMem) Get(pid int) error {
 		return err
 	}
 
-	fields = strings.Fields(string(contents))
+	fields = strings.Split(string(contents), " ")
 
 	self.MinorFaults, _ = strtoull(fields[10])
 	self.MajorFaults, _ = strtoull(fields[12])
@@ -246,7 +246,7 @@ func (self *ProcTime) Get(pid int) error {
 		return err
 	}
 
-	fields := strings.Fields(string(contents))
+	fields := strings.FieldsFunc(string(contents), IsSpace)
 
 	user, _ := strtoull(fields[13])
 	sys, _ := strtoull(fields[14])
@@ -324,7 +324,7 @@ func parseMeminfo(table map[string]*uint64) error {
 }
 
 func parseCpuStat(self *Cpu, line string) error {
-	fields := strings.Fields(line)
+	fields := strings.FieldsFunc(line, IsSpace)
 
 	self.User, _ = strtoull(fields[1])
 	self.Nice, _ = strtoull(fields[2])
@@ -380,4 +380,11 @@ func readProcFile(pid int, name string) ([]byte, error) {
 	}
 
 	return contents, err
+}
+
+func IsSpace(r rune) bool {
+	if r == ' ' || r == '\t' || r == '\n' {
+		return true
+	}
+	return false
 }
