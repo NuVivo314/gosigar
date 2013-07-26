@@ -16,6 +16,10 @@ type Mem struct {
 	Free       uint64
 	ActualFree uint64
 	ActualUsed uint64
+	Active     uint64
+	Inactive   uint64
+	Buffers    uint64
+	Cached     uint64
 }
 
 type Swap struct {
