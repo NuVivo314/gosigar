@@ -307,6 +307,31 @@ func (self *ProcExe) Get(pid int) error {
 	return nil
 }
 
+func (self *ProcUser) Get(pid int) error {
+	return readFile(procFileName(pid, "status"), func(line string) bool {
+		if strings.Contains(line, "Uid") {
+			strS := strings.FieldsFunc(line, IsSpace)
+			self.UidReal = strS[1]
+			self.UidEffective = strS[2]
+			self.UidSaveSet = strS[3]
+			self.UidFs = strS[4]
+		} else if strings.Contains(line, "Gid") {
+			strS := strings.FieldsFunc(line, IsSpace)
+			self.GidReal = strS[1]
+			self.GidEffective = strS[2]
+			self.GidSaveSet = strS[3]
+			self.GidFs = strS[4]
+		} else if strings.Contains(line, "Groups") {
+			strS := strings.FieldsFunc(line, IsSpace)
+			self.OtherGroups = make([]string, len(strS), len(strS))
+			for k := range strS {
+				self.OtherGroups[k] = strS[k]
+			}
+		}
+		return true
+	})
+}
+
 func parseMeminfo(table map[string]*uint64) error {
 	return readFile(procd+"meminfo", func(line string) bool {
 		fields := strings.Split(line, ":")
