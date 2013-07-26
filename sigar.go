@@ -116,3 +116,24 @@ type ProcExe struct {
 	Cwd  string
 	Root string
 }
+
+type networkData struct {
+	Bytes      uint64
+	Packets    uint64
+	Errs       uint64
+	Drop       uint64
+	Fifo       uint64
+	Frame      uint64
+	Compressed uint64
+	Multicast  uint64
+}
+
+type Network struct {
+	Name string
+	Tx   networkData
+	Rx   networkData
+}
+
+type NetworkList struct {
+	List []Network
+}
