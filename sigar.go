@@ -53,6 +53,27 @@ type FileSystem struct {
 	Flags       uint32
 }
 
+type DiskIO struct {
+	Name        string
+	ReadIssued  uint64
+	ReadMerged  uint64
+	ReadSectors uint64
+	ReadSpentMs uint64
+
+	WriteComplet uint64
+	WriteMerged  uint64
+	WriteSectors uint64
+	WriteSpentMs uint64
+
+	WaitIo                uint64
+	WaitIoSpentMs         uint64
+	WaitIoSpentMsWeighted uint64
+}
+
+type DiskIOList struct {
+	List []DiskIO
+}
+
 type FileSystemList struct {
 	List []FileSystem
 }
@@ -116,3 +137,12 @@ type ProcExe struct {
 	Cwd  string
 	Root string
 }
+
+// From: https://code.google.com/p/psutil/source/browse/psutil/_pslinux.py#535
+type ProcIO struct {
+	ReadCount  uint64
+	WriteCount uint64
+	ReadBytes  uint64
+	WriteBytes uint64
+}
+
