@@ -116,3 +116,16 @@ type ProcExe struct {
 	Cwd  string
 	Root string
 }
+
+type ProcUser struct {
+	UidReal      string
+	UidEffective string
+	UidSaveSet   string
+	UidFs        string
+	GidReal      string
+	GidEffective string
+	GidSaveSet   string
+	GidFs        string
+	OtherGroups  []string
+}
+
