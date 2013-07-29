@@ -128,16 +128,16 @@ func TestProcState(t *testing.T) {
 	}
 
 	if state.State != RunStateRun && state.State != RunStateSleep {
-		t.Error("Invalid ProcState.State '%v'", state.State)
+		t.Errorf("Invalid ProcState.State '%v'", state.State)
 	}
 
 	if state.Name != "go" { // our parent is "go test"
-		t.Error("Invalid ProcState.Name '%v'", state.Name)
+		t.Errorf("Invalid ProcState.Name '%v'", state.Name)
 	}
 
 	err = state.Get(invalidPid)
 	if err == nil {
-		t.Error("Invalid ProcState.Get('%d')", invalidPid)
+		t.Errorf("Invalid ProcState.Get('%d')", invalidPid)
 	}
 }
 
@@ -150,7 +150,7 @@ func TestProcMem(t *testing.T) {
 
 	err = mem.Get(invalidPid)
 	if err == nil {
-		t.Error("Invalid ProcMem.Get('%d')", invalidPid)
+		t.Errorf("Invalid ProcMem.Get('%d')", invalidPid)
 	}
 }
 
@@ -163,7 +163,7 @@ func TestProcTime(t *testing.T) {
 
 	err = time.Get(invalidPid)
 	if err == nil {
-		t.Error("Invalid ProcTime.Get('%d')", invalidPid)
+		t.Errorf("Invalid ProcTime.Get('%d')", invalidPid)
 	}
 }
 
