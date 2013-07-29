@@ -5,6 +5,7 @@ package sigar
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -106,14 +107,19 @@ func (self *Cpu) Get() error {
 }
 
 func (self *DiskIO) Get(diskId string) error {
-	return readFile(procd+"diskstats", func(line string) bool {
+	var found bool = false
+	err := readFile(procd+"diskstats", func(line string) bool {
 		line = line[13:]
 		if line[:len(diskId)] == diskId {
 			parseDiskStat(self, line)
-			return false
+			found = !found
+			return !found
 		}
-		return true
+		return !found
 	})
+	if err != nil {
+	  return err
+	}
 }
 
 func (self *DiskIOList) Get() error {
