@@ -117,9 +117,10 @@ func (self *DiskIO) Get(diskId string) error {
 		}
 		return !found
 	})
-	if err != nil {
-	  return err
+	if found == false {
+	  return errors.New("Disk("+diskId+") not found")
 	}
+	return err
 }
 
 func (self *DiskIOList) Get() error {
@@ -342,22 +343,22 @@ func (self *ProcExe) Get(pid int) error {
 
 func (self *ProcIO) Get(pid int) error {
 	return readFile(procFileName(pid, "io"), func(line string) bool {
-		if strings.Contains(line, "rc") {
+		if strings.Contains(line, "rchar") {
 			i := strings.IndexRune(line, ' ') + 1
 			if i != 0 {
 				self.ReadCount, _ = strtoull(line[i:])
 			}
-		} else if strings.Contains(line, "wc") {
+		} else if strings.Contains(line, "wchar") {
 			i := strings.IndexRune(line, ' ') + 1
 			if i != 0 {
 				self.WriteCount, _ = strtoull(line[i:])
 			}
-		} else if strings.HasPrefix(line, "rea") {
+		} else if strings.HasPrefix(line, "read_bytes") {
 			i := strings.IndexRune(line, ' ') + 1
 			if i != 0 {
 				self.ReadBytes, _ = strtoull(line[i:])
 			}
-		} else if strings.HasPrefix(line, "wri") {
+		} else if strings.HasPrefix(line, "write_bytes") {
 			i := strings.IndexRune(line, ' ') + 1
 			if i != 0 {
 				self.WriteBytes, _ = strtoull(line[i:])
