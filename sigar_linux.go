@@ -118,7 +118,7 @@ func (self *DiskIO) Get(diskId string) error {
 		return !found
 	})
 	if found == false {
-	  return errors.New("Disk("+diskId+") not found")
+		return errors.New("Disk(" + diskId + ") not found")
 	}
 	return err
 }
@@ -367,7 +367,6 @@ func (self *ProcIO) Get(pid int) error {
 		return true
 	})
 }
-
 
 func parseMeminfo(table map[string]*uint64) error {
 	return readFile(procd+"meminfo", func(line string) bool {
