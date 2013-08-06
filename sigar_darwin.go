@@ -49,6 +49,7 @@ func (self *Uptime) Get() error {
 	return nil
 }
 
+// Active, Inactive, Buffers, Cached
 func (self *Mem) Get() error {
 	var vmstat C.vm_statistics_data_t
 
@@ -61,6 +62,8 @@ func (self *Mem) Get() error {
 	}
 
 	kern := uint64(vmstat.inactive_count) << 12
+	self.Active = uint64(vmstat.active_count) << 12
+	self.Inactive = kern
 	self.Free = uint64(vmstat.free_count) << 12
 
 	self.Used = self.Total - self.Free
