@@ -4,7 +4,6 @@
 
 package sigar
 
-
 import "syscall"
 
 func (self *FileSystemUsage) Get(path string) error {
