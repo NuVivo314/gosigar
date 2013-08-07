@@ -5,6 +5,7 @@ package sigar
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -328,6 +329,26 @@ func (self *ProcExe) Get(pid int) error {
 	return nil
 }
 
+func (self *Network) Get(name string) error {
+	err := readFile(procd+"/net/dev", func(line string) bool {
+		if strings.Contains(line[:10], "Inte") || strings.Contains(line[:10], "face") {
+			return true
+		}
+		n := Network{}
+		parseNetwork(&n, line)
+		if n.Name == name {
+			self.Name = n.Name
+			self.Rx = n.Rx
+			self.Tx = n.Tx
+			return false
+		}
+		return true
+	})
+	if self.Name == "" {
+		err = errors.New("Fail to find this interface")
+	}
+	return err
+}
 
 func (self *NetworkList) Get() error {
 	return readFile(procd+"/net/dev", func(line string) bool {
