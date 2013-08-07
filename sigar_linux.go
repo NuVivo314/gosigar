@@ -20,6 +20,18 @@ var system struct {
 	btime uint64
 }
 
+type ProcUser struct {
+	UidReal      string
+	UidEffective string
+	UidSaveSet   string
+	UidFs        string
+	GidReal      string
+	GidEffective string
+	GidSaveSet   string
+	GidFs        string
+	OtherGroups  []string
+}
+
 func init() {
 	system.ticks = 100 // C.sysconf(C._SC_CLK_TCK)
 
